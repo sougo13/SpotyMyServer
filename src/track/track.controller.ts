@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post } from "@nestjs/common";
-import mongoose from "mongoose";
+import { Body, Controller, Delete, Get, Param, Post, UploadedFiles, UseInterceptors } from "@nestjs/common";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
+import { ObjectId } from "mongoose";
 import { CreateCommentDto } from "./dto/create-comment.dto";
 import { CreateTrackDto } from "./dto/create-track.dto";
 import { TrackService } from "./track.service";
@@ -13,8 +14,13 @@ export class TrackController {
   }
 
   @Post()
-  create(@Body() dto: CreateTrackDto) {
-    return this.trackservice.create(dto);
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'image', maxCount: 1 },
+    { name: 'audio', maxCount: 1 },
+  ]))
+  create(@UploadedFiles() files, @Body() dto: CreateTrackDto) {
+    const { image, audio } = files;
+    return this.trackservice.create(dto, image[0], audio[0]);
   }
 
   @Get()
@@ -23,17 +29,22 @@ export class TrackController {
   }
 
   @Get(':id')
-  getOne(@Param('id') id: mongoose.Schema.Types.ObjectId) {
+  getOne(@Param('id') id: ObjectId) {
     return this.trackservice.getOne(id);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: mongoose.Schema.Types.ObjectId) {
+  delete(@Param('id') id: ObjectId) {
     return this.trackservice.delete(id);
   }
 
   @Post('/comment')
-  addComment(@Body() dto: CreateCommentDto){
+  addComment(@Body() dto: CreateCommentDto) {
     return this.trackservice.addComment(dto);
+  }
+
+  @Post('/listen/:id')
+  listen(@Param('id') id: ObjectId){
+    return this.trackservice.listen(id);
   }
 }
